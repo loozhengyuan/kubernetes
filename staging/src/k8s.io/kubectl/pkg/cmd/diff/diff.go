@@ -321,10 +321,20 @@ func mask(obj Object) (runtime.Object, runtime.Object, error) {
 	}
 
 	// Checks if object is v1Secret
-	// TODO: Check from obj.Name?
-	gvk := obj.Live().GetObjectKind().GroupVersionKind()
-	if gvk.Version != "v1" || gvk.Kind != "Secret" {
-		return unmaskedLive, unmaskedMerged, nil
+	switch {
+	case unmaskedLive != nil:
+		gvk := unmaskedLive.GetObjectKind().GroupVersionKind()
+		if gvk.Version != "v1" || gvk.Kind != "Secret" {
+			return unmaskedLive, unmaskedMerged, nil
+		}
+	case unmaskedMerged != nil:
+		gvk := unmaskedMerged.GetObjectKind().GroupVersionKind()
+		if gvk.Version != "v1" || gvk.Kind != "Secret" {
+			return unmaskedLive, unmaskedMerged, nil
+		}
+	default:
+		// TODO: Return error or not?
+		return nil, nil, nil
 	}
 
 	unstructuredLive, err := runtime.DefaultUnstructuredConverter.ToUnstructured(unmaskedLive)
