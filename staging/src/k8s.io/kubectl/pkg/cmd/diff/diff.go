@@ -307,6 +307,11 @@ type Object interface {
 	Name() string
 }
 
+// Mask conceals sensitive values by masking them with asterisks.
+func Mask(obj Object) (runtime.Object, runtime.Object, error) {
+	return nil, nil, nil
+}
+
 // InfoObject is an implementation of the Object interface. It gets all
 // the information from the Info object.
 type InfoObject struct {

@@ -22,6 +22,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -206,5 +207,264 @@ func TestDiffer(t *testing.T) {
 	econtent = "merged: true\n"
 	if string(fcontent) != econtent {
 		t.Fatalf("File has %q, expected %q", string(fcontent), econtent)
+	}
+}
+
+func TestMask(t *testing.T) {
+	cases := []struct {
+		name       string
+		live       map[string]interface{}
+		merged     map[string]interface{}
+		wantLive   runtime.Object
+		wantMerged runtime.Object
+	}{
+		{
+			name: "v1secret_no_change",
+			live: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+					"password": []byte("123"),
+				},
+			},
+			merged: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+					"password": []byte("123"),
+				},
+			},
+			wantLive: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"),
+						"password": []byte("***"),
+					},
+				},
+			},
+			wantMerged: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"),
+						"password": []byte("***"),
+					},
+				},
+			},
+		},
+		{
+			name: "v1secret_object_created",
+			live: map[string]interface{}{},
+			merged: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+					"password": []byte("123"),
+				},
+			},
+			wantLive: &unstructured.Unstructured{
+				Object: map[string]interface{}{},
+			},
+			wantMerged: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"), // no suffix needed
+						"password": []byte("***"), // no suffix needed
+					},
+				},
+			},
+		},
+		{
+			name: "v1secret_object_removed",
+			live: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+					"password": []byte("123"),
+				},
+			},
+			merged: map[string]interface{}{},
+			wantLive: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"), // no suffix needed
+						"password": []byte("***"), // no suffix needed
+					},
+				},
+			},
+			wantMerged: &unstructured.Unstructured{
+				Object: map[string]interface{}{},
+			},
+		},
+		{
+			name: "v1secret_data_key_added",
+			live: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+				},
+			},
+			merged: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+					"password": []byte("123"), // added
+				},
+			},
+			wantLive: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"),
+					},
+				},
+			},
+			wantMerged: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"),
+						"password": []byte("***"), // no suffix needed
+					},
+				},
+			},
+		},
+		{
+			name: "v1secret_data_key_changed",
+			live: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+					"password": []byte("123"),
+				},
+			},
+			merged: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+					"password": []byte("456"), // changed
+				},
+			},
+			wantLive: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"),
+						"password": []byte("*** (before)"), // added suffix for diff
+					},
+				},
+			},
+			wantMerged: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"),
+						"password": []byte("*** (after)"), // added suffix for diff
+					},
+				},
+			},
+		},
+		{
+			name: "v1secret_data_key_removed",
+			live: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+					"password": []byte("123"),
+				},
+			},
+			merged: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"data": map[string][]byte{
+					"username": []byte("abc"),
+					// "password": []byte("123"), // removed
+				},
+			},
+			wantLive: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"),
+						"password": []byte("***"), // no suffix needed
+					},
+				},
+			},
+			wantMerged: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Secret",
+					"data": map[string][]byte{
+						"username": []byte("***"),
+						// "password": []byte("***"),
+					},
+				},
+			},
+		},
+		{
+			name: "non_v1secret",
+			live: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Namespace",
+			},
+			merged: map[string]interface{}{
+				"apiVersion": "v1",
+				"kind":       "Namespace",
+			},
+			wantLive: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Namespace",
+				},
+			},
+			wantMerged: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "Namespace",
+				},
+			},
+		},
+	}
+	for _, tc := range cases {
+		tc := tc // capture range variable
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			obj := &FakeObject{
+				name:   tc.name,
+				live:   tc.live,
+				merged: tc.merged,
+			}
+			gotLive, gotMerged, err := Mask(obj)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(gotLive, tc.wantLive) {
+				t.Errorf("live: got: %s, want: %s", gotLive, tc.wantLive)
+			}
+			if !reflect.DeepEqual(gotMerged, tc.wantMerged) {
+				t.Errorf("merged: got: %s, want: %s", gotMerged, tc.wantMerged)
+			}
+		})
 	}
 }
