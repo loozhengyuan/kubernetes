@@ -336,7 +336,7 @@ func mask(obj Object) (runtime.Object, runtime.Object, error) {
 		return nil, nil, nil
 	}
 
-	unstructuredLive, err := runtime.DefaultUnstructuredConverter.ToUnstructured(unmaskedLive)
+	unstructuredLive, err := runtime.DefaultUnstructuredConverter.ToUnstructured(unmaskedLive.DeepCopyObject())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -350,7 +350,7 @@ func mask(obj Object) (runtime.Object, runtime.Object, error) {
 		return nil, nil, err
 	}
 
-	unstructuredMerged, err := runtime.DefaultUnstructuredConverter.ToUnstructured(unmaskedMerged)
+	unstructuredMerged, err := runtime.DefaultUnstructuredConverter.ToUnstructured(unmaskedMerged.DeepCopyObject())
 	if err != nil {
 		return nil, nil, err
 	}
