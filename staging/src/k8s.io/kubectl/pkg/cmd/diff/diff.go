@@ -17,7 +17,6 @@ limitations under the License.
 package diff
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -343,15 +342,11 @@ func mask(obj Object) (runtime.Object, runtime.Object, error) {
 	}
 	var maskedLive = &unstructured.Unstructured{}
 	maskedLive.SetUnstructuredContent(unstructuredLive)
-	secretsLive, found, err := unstructured.NestedFieldNoCopy(maskedLive.UnstructuredContent(), "data")
+	l, found, err := unstructured.NestedMap(maskedLive.UnstructuredContent(), "data")
 	if !found {
 		return nil, nil, &errors.UnexpectedObjectError{Object: maskedLive}
 	}
 	if err != nil {
-		return nil, nil, err
-	}
-	l, ok := secretsLive.(map[string][]byte)
-	if !ok {
 		return nil, nil, err
 	}
 
@@ -361,29 +356,25 @@ func mask(obj Object) (runtime.Object, runtime.Object, error) {
 	}
 	var maskedMerged = &unstructured.Unstructured{}
 	maskedMerged.SetUnstructuredContent(unstructuredMerged)
-	secretsMerged, found, err := unstructured.NestedFieldNoCopy(maskedMerged.UnstructuredContent(), "data")
+	m, found, err := unstructured.NestedMap(maskedMerged.UnstructuredContent(), "data")
 	if !found {
 		return nil, nil, &errors.UnexpectedObjectError{Object: maskedMerged}
 	}
 	if err != nil {
 		return nil, nil, err
 	}
-	m, ok := secretsMerged.(map[string][]byte)
-	if !ok {
-		return nil, nil, err
-	}
 
 	var (
-		maskAsterisk           = []byte("***")
-		maskAsteriskWithBefore = []byte("*** (before)")
-		maskAsteriskWithAfter  = []byte("*** (after)")
+		maskAsterisk           = "***"
+		maskAsteriskWithBefore = "*** (before)"
+		maskAsteriskWithAfter  = "*** (after)"
 	)
 	for k := range l {
 		// Add before/after suffix when key exists on both
 		// objects and are not equal, so that it will be
 		// visible in diffs.
 		if _, ok := m[k]; ok {
-			if !bytes.Equal(l[k], m[k]) {
+			if l[k] != m[k] {
 				l[k] = maskAsteriskWithBefore
 				m[k] = maskAsteriskWithAfter
 				continue
@@ -398,6 +389,8 @@ func mask(obj Object) (runtime.Object, runtime.Object, error) {
 			m[k] = maskAsterisk
 		}
 	}
+	unstructured.SetNestedMap(maskedLive.UnstructuredContent(), l, "data")
+	unstructured.SetNestedMap(maskedMerged.UnstructuredContent(), m, "data")
 	return maskedLive, maskedMerged, nil
 }
 

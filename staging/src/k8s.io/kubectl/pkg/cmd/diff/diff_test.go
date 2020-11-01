@@ -223,26 +223,26 @@ func TestMask(t *testing.T) {
 			live: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
-					"password": []byte("123"),
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "123",
 				},
 			},
 			merged: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
-					"password": []byte("123"),
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "123",
 				},
 			},
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"),
-						"password": []byte("***"),
+					"data": map[string]interface{}{
+						"username": "***",
+						"password": "***",
 					},
 				},
 			},
@@ -250,9 +250,9 @@ func TestMask(t *testing.T) {
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"),
-						"password": []byte("***"),
+					"data": map[string]interface{}{
+						"username": "***",
+						"password": "***",
 					},
 				},
 			},
@@ -263,9 +263,9 @@ func TestMask(t *testing.T) {
 			merged: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
-					"password": []byte("123"),
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "123",
 				},
 			},
 			wantLive: nil, // does not exist yet
@@ -273,9 +273,9 @@ func TestMask(t *testing.T) {
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"), // no suffix needed
-						"password": []byte("***"), // no suffix needed
+					"data": map[string]interface{}{
+						"username": "***", // no suffix needed
+						"password": "***", // no suffix needed
 					},
 				},
 			},
@@ -285,9 +285,9 @@ func TestMask(t *testing.T) {
 			live: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
-					"password": []byte("123"),
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "123",
 				},
 			},
 			merged: nil, // removed
@@ -295,9 +295,9 @@ func TestMask(t *testing.T) {
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"), // no suffix needed
-						"password": []byte("***"), // no suffix needed
+					"data": map[string]interface{}{
+						"username": "***", // no suffix needed
+						"password": "***", // no suffix needed
 					},
 				},
 			},
@@ -308,24 +308,24 @@ func TestMask(t *testing.T) {
 			live: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
+				"data": map[string]interface{}{
+					"username": "abc",
 				},
 			},
 			merged: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
-					"password": []byte("123"), // added
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "123", // added
 				},
 			},
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"),
+					"data": map[string]interface{}{
+						"username": "***",
 					},
 				},
 			},
@@ -333,9 +333,9 @@ func TestMask(t *testing.T) {
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"),
-						"password": []byte("***"), // no suffix needed
+					"data": map[string]interface{}{
+						"username": "***",
+						"password": "***", // no suffix needed
 					},
 				},
 			},
@@ -345,26 +345,26 @@ func TestMask(t *testing.T) {
 			live: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
-					"password": []byte("123"),
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "123",
 				},
 			},
 			merged: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
-					"password": []byte("456"), // changed
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "456", // changed
 				},
 			},
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"),
-						"password": []byte("*** (before)"), // added suffix for diff
+					"data": map[string]interface{}{
+						"username": "***",
+						"password": "*** (before)", // added suffix for diff
 					},
 				},
 			},
@@ -372,9 +372,9 @@ func TestMask(t *testing.T) {
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"),
-						"password": []byte("*** (after)"), // added suffix for diff
+					"data": map[string]interface{}{
+						"username": "***",
+						"password": "*** (after)", // added suffix for diff
 					},
 				},
 			},
@@ -384,26 +384,26 @@ func TestMask(t *testing.T) {
 			live: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
-					"password": []byte("123"),
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "123",
 				},
 			},
 			merged: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
-				"data": map[string][]byte{
-					"username": []byte("abc"),
-					// "password": []byte("123"), // removed
+				"data": map[string]interface{}{
+					"username": "abc",
+					// "password": "123", // removed
 				},
 			},
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"),
-						"password": []byte("***"), // no suffix needed
+					"data": map[string]interface{}{
+						"username": "***",
+						"password": "***", // no suffix needed
 					},
 				},
 			},
@@ -411,9 +411,9 @@ func TestMask(t *testing.T) {
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "Secret",
-					"data": map[string][]byte{
-						"username": []byte("***"),
-						// "password": []byte("***"),
+					"data": map[string]interface{}{
+						"username": "***",
+						// "password": "***",
 					},
 				},
 			},
