@@ -248,11 +248,15 @@ func NewDiffVersion(name string) (*DiffVersion, error) {
 }
 
 func (v *DiffVersion) getObject(obj Object) (runtime.Object, error) {
+	live, merged, err := Mask(obj)
+	if err != nil {
+		return nil, fmt.Errorf("mask secrets: %v", err)
+	}
 	switch v.Name {
 	case "LIVE":
-		return obj.Live(), nil
+		return live, nil
 	case "MERGED":
-		return obj.Merged()
+		return merged, nil
 	}
 	return nil, fmt.Errorf("Unknown version: %v", v.Name)
 }
