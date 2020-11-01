@@ -17,6 +17,7 @@ limitations under the License.
 package diff
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -309,7 +310,81 @@ type Object interface {
 
 // Mask conceals sensitive values by masking them with asterisks.
 func Mask(obj Object) (runtime.Object, runtime.Object, error) {
-	return nil, nil, nil
+	unmaskedLive := obj.Live()
+	unmaskedMerged, err := obj.Merged()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Checks if object is v1Secret
+	// TODO: Check from obj.Name?
+	gvk := obj.Live().GetObjectKind().GroupVersionKind()
+	if gvk.Version != "v1" || gvk.Kind != "Secret" {
+		return unmaskedLive, unmaskedMerged, nil
+	}
+
+	unstructuredLive, err := runtime.DefaultUnstructuredConverter.ToUnstructured(unmaskedLive)
+	if err != nil {
+		return nil, nil, err
+	}
+	var maskedLive = &unstructured.Unstructured{}
+	maskedLive.SetUnstructuredContent(unstructuredLive)
+	secretsLive, found, err := unstructured.NestedFieldNoCopy(maskedLive.UnstructuredContent(), "data")
+	if !found {
+		return nil, nil, &errors.UnexpectedObjectError{Object: maskedLive}
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	l, ok := secretsLive.(map[string][]byte)
+	if !ok {
+		return nil, nil, err
+	}
+
+	unstructuredMerged, err := runtime.DefaultUnstructuredConverter.ToUnstructured(unmaskedMerged)
+	if err != nil {
+		return nil, nil, err
+	}
+	var maskedMerged = &unstructured.Unstructured{}
+	maskedMerged.SetUnstructuredContent(unstructuredMerged)
+	secretsMerged, found, err := unstructured.NestedFieldNoCopy(maskedMerged.UnstructuredContent(), "data")
+	if !found {
+		return nil, nil, &errors.UnexpectedObjectError{Object: maskedMerged}
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	m, ok := secretsMerged.(map[string][]byte)
+	if !ok {
+		return nil, nil, err
+	}
+
+	var (
+		maskAsterisk           = []byte("***")
+		maskAsteriskWithBefore = []byte("*** (before)")
+		maskAsteriskWithAfter  = []byte("*** (after)")
+	)
+	for k := range l {
+		// Add before/after suffix when key exists on both
+		// objects and are not equal, so that it will be
+		// visible in diffs.
+		if _, ok := m[k]; ok {
+			if !bytes.Equal(l[k], m[k]) {
+				l[k] = maskAsteriskWithBefore
+				m[k] = maskAsteriskWithAfter
+				continue
+			}
+			m[k] = maskAsterisk
+		}
+		l[k] = maskAsterisk
+	}
+	for k := range m {
+		// Mask remaining keys that were not in 'live'
+		if _, ok := l[k]; !ok {
+			m[k] = maskAsterisk
+		}
+	}
+	return maskedLive, maskedMerged, nil
 }
 
 // InfoObject is an implementation of the Object interface. It gets all
