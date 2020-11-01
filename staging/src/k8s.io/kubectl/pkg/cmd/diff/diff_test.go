@@ -451,7 +451,7 @@ func TestMask(t *testing.T) {
 				live:   tc.live,
 				merged: tc.merged,
 			}
-			gotLive, gotMerged, err := Mask(obj)
+			gotLive, gotMerged, err := mask(obj)
 			if err != nil {
 				t.Fatal(err)
 			}

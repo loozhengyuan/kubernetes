@@ -248,7 +248,7 @@ func NewDiffVersion(name string) (*DiffVersion, error) {
 }
 
 func (v *DiffVersion) getObject(obj Object) (runtime.Object, error) {
-	live, merged, err := Mask(obj)
+	live, merged, err := mask(obj)
 	if err != nil {
 		return nil, fmt.Errorf("mask secrets: %v", err)
 	}
@@ -312,8 +312,8 @@ type Object interface {
 	Name() string
 }
 
-// Mask conceals sensitive values by masking them with asterisks.
-func Mask(obj Object) (runtime.Object, runtime.Object, error) {
+// mask conceals sensitive values by masking them with asterisks.
+func mask(obj Object) (runtime.Object, runtime.Object, error) {
 	unmaskedLive := obj.Live()
 	unmaskedMerged, err := obj.Merged()
 	if err != nil {
