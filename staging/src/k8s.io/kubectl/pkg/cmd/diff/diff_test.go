@@ -259,7 +259,7 @@ func TestMask(t *testing.T) {
 		},
 		{
 			name: "v1secret_object_created",
-			live: map[string]interface{}{},
+			live: nil, // does not exist yet
 			merged: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Secret",
@@ -268,9 +268,7 @@ func TestMask(t *testing.T) {
 					"password": []byte("123"),
 				},
 			},
-			wantLive: &unstructured.Unstructured{
-				Object: map[string]interface{}{},
-			},
+			wantLive: nil, // does not exist yet
 			wantMerged: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
@@ -292,7 +290,7 @@ func TestMask(t *testing.T) {
 					"password": []byte("123"),
 				},
 			},
-			merged: map[string]interface{}{},
+			merged: nil, // removed
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
@@ -303,9 +301,7 @@ func TestMask(t *testing.T) {
 					},
 				},
 			},
-			wantMerged: &unstructured.Unstructured{
-				Object: map[string]interface{}{},
-			},
+			wantMerged: nil, // removed
 		},
 		{
 			name: "v1secret_data_key_added",
