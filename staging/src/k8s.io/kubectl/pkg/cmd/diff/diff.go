@@ -312,66 +312,66 @@ type Object interface {
 }
 
 // mask conceals sensitive values by masking them with asterisks.
-func mask(obj Object) (runtime.Object, runtime.Object, error) {
-	unmaskedLive := obj.Live()
-	unmaskedMerged, err := obj.Merged()
+func mask(obj Object) (live, merged runtime.Object, err error) {
+	live = obj.Live()
+	merged, err = obj.Merged()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// Checks if object is v1Secret
 	switch {
-	case unmaskedLive != nil:
-		gvk := unmaskedLive.GetObjectKind().GroupVersionKind()
+	case live != nil:
+		gvk := live.GetObjectKind().GroupVersionKind()
 		if gvk.Version != "v1" || gvk.Kind != "Secret" {
-			return unmaskedLive, unmaskedMerged, nil
+			return live, merged, nil
 		}
-	case unmaskedMerged != nil:
-		gvk := unmaskedMerged.GetObjectKind().GroupVersionKind()
+	case merged != nil:
+		gvk := merged.GetObjectKind().GroupVersionKind()
 		if gvk.Version != "v1" || gvk.Kind != "Secret" {
-			return unmaskedLive, unmaskedMerged, nil
+			return live, merged, nil
 		}
 	default:
 		// TODO: Return error or not?
 		return nil, nil, nil
 	}
 
-	var maskedLive *unstructured.Unstructured
-	var l map[string]interface{}
-	if unmaskedLive != nil {
-		unstructuredLive, err := runtime.DefaultUnstructuredConverter.ToUnstructured(unmaskedLive.DeepCopyObject())
+	var unstructLive *unstructured.Unstructured
+	var dataLive map[string]interface{}
+	if live != nil {
+		unstructuredLive, err := runtime.DefaultUnstructuredConverter.ToUnstructured(live.DeepCopyObject())
 		if err != nil {
 			return nil, nil, err
 		}
-		maskedLive = &unstructured.Unstructured{}
-		maskedLive.SetUnstructuredContent(unstructuredLive)
-		val, found, err := unstructured.NestedMap(maskedLive.UnstructuredContent(), "data")
+		unstructLive = &unstructured.Unstructured{}
+		unstructLive.SetUnstructuredContent(unstructuredLive)
+		val, found, err := unstructured.NestedMap(unstructLive.UnstructuredContent(), "data")
 		if !found {
-			return nil, nil, &errors.UnexpectedObjectError{Object: maskedLive}
+			return nil, nil, &errors.UnexpectedObjectError{Object: unstructLive}
 		}
 		if err != nil {
 			return nil, nil, err
 		}
-		l = val
+		dataLive = val
 	}
 
-	var maskedMerged *unstructured.Unstructured
-	var m map[string]interface{}
-	if unmaskedMerged != nil {
-		unstructuredMerged, err := runtime.DefaultUnstructuredConverter.ToUnstructured(unmaskedMerged.DeepCopyObject())
+	var unstructMerged *unstructured.Unstructured
+	var dataMerged map[string]interface{}
+	if merged != nil {
+		unstructuredMerged, err := runtime.DefaultUnstructuredConverter.ToUnstructured(merged.DeepCopyObject())
 		if err != nil {
 			return nil, nil, err
 		}
-		maskedMerged = &unstructured.Unstructured{}
-		maskedMerged.SetUnstructuredContent(unstructuredMerged)
-		val, found, err := unstructured.NestedMap(maskedMerged.UnstructuredContent(), "data")
+		unstructMerged = &unstructured.Unstructured{}
+		unstructMerged.SetUnstructuredContent(unstructuredMerged)
+		val, found, err := unstructured.NestedMap(unstructMerged.UnstructuredContent(), "data")
 		if !found {
-			return nil, nil, &errors.UnexpectedObjectError{Object: maskedMerged}
+			return nil, nil, &errors.UnexpectedObjectError{Object: unstructMerged}
 		}
 		if err != nil {
 			return nil, nil, err
 		}
-		m = val
+		dataMerged = val
 	}
 
 	var (
@@ -379,37 +379,36 @@ func mask(obj Object) (runtime.Object, runtime.Object, error) {
 		maskAsteriskWithBefore = "*** (before)"
 		maskAsteriskWithAfter  = "*** (after)"
 	)
-	for k := range l {
+	for k := range dataLive {
 		// Add before/after suffix when key exists on both
 		// objects and are not equal, so that it will be
 		// visible in diffs.
-		if _, ok := m[k]; ok {
-			if l[k] != m[k] {
-				l[k] = maskAsteriskWithBefore
-				m[k] = maskAsteriskWithAfter
+		if _, ok := dataMerged[k]; ok {
+			if dataLive[k] != dataMerged[k] {
+				dataLive[k] = maskAsteriskWithBefore
+				dataMerged[k] = maskAsteriskWithAfter
 				continue
 			}
-			m[k] = maskAsterisk
+			dataMerged[k] = maskAsterisk
 		}
-		l[k] = maskAsterisk
+		dataLive[k] = maskAsterisk
 	}
-	for k := range m {
+	for k := range dataMerged {
 		// Mask remaining keys that were not in 'live'
-		if _, ok := l[k]; !ok {
-			m[k] = maskAsterisk
+		if _, ok := dataLive[k]; !ok {
+			dataMerged[k] = maskAsterisk
 		}
 	}
-	var outputLive runtime.Object
-	var outputMerged runtime.Object
-	if maskedLive != nil {
-		unstructured.SetNestedMap(maskedLive.UnstructuredContent(), l, "data")
-		outputLive = maskedLive
+
+	if unstructLive != nil {
+		unstructured.SetNestedMap(unstructLive.UnstructuredContent(), dataLive, "data")
+		live = unstructLive
 	}
-	if maskedMerged != nil {
-		unstructured.SetNestedMap(maskedMerged.UnstructuredContent(), m, "data")
-		outputMerged = maskedMerged
+	if unstructMerged != nil {
+		unstructured.SetNestedMap(unstructMerged.UnstructuredContent(), dataMerged, "data")
+		merged = unstructMerged
 	}
-	return outputLive, outputMerged, nil
+	return live, merged, nil
 }
 
 // InfoObject is an implementation of the Object interface. It gets all
