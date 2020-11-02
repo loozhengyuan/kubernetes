@@ -313,7 +313,15 @@ type Object interface {
 	GroupVersionKind() schema.GroupVersionKind
 }
 
-// mask conceals sensitive values by masking them with asterisks.
+// mask conceals any secret values and returns the live/merged versions
+// of the object.
+//
+// mask only operates on V1Secret objects; any other objects will
+// be returned as-is.
+//
+// All secret values in the objects will be masked with a fixed-length
+// asterisk mask. If two values are different, an additional suffix will
+// be added so they can be diffed.
 func mask(obj Object) (live, merged runtime.Object, err error) {
 	live = obj.Live()
 	merged, err = obj.Merged()
