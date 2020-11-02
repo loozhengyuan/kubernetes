@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -309,6 +310,7 @@ type Object interface {
 	Merged() (runtime.Object, error)
 
 	Name() string
+	GroupVersionKind() schema.GroupVersionKind
 }
 
 // mask conceals sensitive values by masking them with asterisks.
@@ -503,6 +505,10 @@ func (obj InfoObject) Name() string {
 		obj.Info.Namespace,
 		obj.Info.Name,
 	)
+}
+
+func (obj InfoObject) GroupVersionKind() schema.GroupVersionKind {
+	return obj.Info.Mapping.GroupVersionKind
 }
 
 // Differ creates two DiffVersion and diffs them.

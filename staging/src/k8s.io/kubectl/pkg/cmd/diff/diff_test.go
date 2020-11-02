@@ -28,20 +28,32 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/utils/exec"
 )
 
 type FakeObject struct {
-	name   string
-	merged map[string]interface{}
-	live   map[string]interface{}
+	name    string
+	group   string
+	version string
+	kind    string
+	merged  map[string]interface{}
+	live    map[string]interface{}
 }
 
 var _ Object = &FakeObject{}
 
 func (f *FakeObject) Name() string {
 	return f.name
+}
+
+func (f *FakeObject) GroupVersionKind() schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   f.group,
+		Version: f.version,
+		Kind:    f.kind,
+	}
 }
 
 func (f *FakeObject) Merged() (runtime.Object, error) {
