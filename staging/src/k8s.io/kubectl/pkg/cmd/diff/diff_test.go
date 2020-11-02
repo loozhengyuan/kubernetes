@@ -45,10 +45,18 @@ func (f *FakeObject) Name() string {
 }
 
 func (f *FakeObject) Merged() (runtime.Object, error) {
+	// Return nil if merged object does not exist
+	if f.merged == nil {
+		return nil, nil
+	}
 	return &unstructured.Unstructured{Object: f.merged}, nil
 }
 
 func (f *FakeObject) Live() runtime.Object {
+	// Return nil if live object does not exist
+	if f.live == nil {
+		return nil
+	}
 	return &unstructured.Unstructured{Object: f.live}
 }
 
