@@ -414,27 +414,35 @@ func TestMask(t *testing.T) {
 			},
 		},
 		{
-			name:    "non_v1secret",
+			name:    "unsupported_object_v1configmap",
 			version: "v1",
 			kind:    "Namespace",
 			live: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Namespace",
-			},
-			merged: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Namespace",
-			},
-			wantLive: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Namespace",
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "123",
 				},
 			},
-			wantMerged: &unstructured.Unstructured{
+			merged: map[string]interface{}{
+				"data": map[string]interface{}{
+					"username": "abc",
+					"password": "123",
+				},
+			},
+			wantLive: &unstructured.Unstructured{ // no masking; passthrough as-is
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Namespace",
+					"data": map[string]interface{}{
+						"username": "abc",
+						"password": "123",
+					},
+				},
+			},
+			wantMerged: &unstructured.Unstructured{ // no masking; passthrough as-is
+				Object: map[string]interface{}{
+					"data": map[string]interface{}{
+						"username": "abc",
+						"password": "123",
+					},
 				},
 			},
 		},
