@@ -521,7 +521,7 @@ func TestUnstructuredNestedMap(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(data, tc.data) {
-				t.Errorf("live: got: %s, want: %s", data, tc.data)
+				t.Errorf("got: %s, want: %s", data, tc.data)
 			}
 		})
 	}
