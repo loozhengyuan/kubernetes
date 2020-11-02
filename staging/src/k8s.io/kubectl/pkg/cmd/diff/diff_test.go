@@ -472,3 +472,57 @@ func TestMask(t *testing.T) {
 		})
 	}
 }
+
+func TestUnstructuredNestedMap(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"nested": map[string]interface{}{
+				"key": "value",
+			},
+		},
+	}
+	cases := []struct {
+		name     string
+		obj      runtime.Object
+		fields   []string
+		unstruct *unstructured.Unstructured
+		data     map[string]interface{}
+	}{
+		{
+			name:     "default",
+			obj:      obj,
+			fields:   []string{"nested"},
+			unstruct: obj,
+			data: map[string]interface{}{
+				"key": "value",
+			},
+		},
+		{
+			name:     "empty_object",
+			obj:      nil,
+			fields:   []string{"nested"},
+			unstruct: nil, // nil return
+			data:     nil, // nil return
+		},
+		{
+			name:     "no_fields_specified",
+			obj:      obj,
+			fields:   nil,
+			unstruct: nil, // nil return
+			data:     nil, // nil return
+		},
+	}
+	for _, tc := range cases {
+		tc := tc // capture range variable
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, data, err := unstructuredNestedMap(tc.obj, tc.fields...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(data, tc.data) {
+				t.Errorf("live: got: %s, want: %s", data, tc.data)
+			}
+		})
+	}
+}

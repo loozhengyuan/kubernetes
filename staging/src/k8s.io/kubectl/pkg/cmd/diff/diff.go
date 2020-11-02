@@ -336,42 +336,14 @@ func mask(obj Object) (live, merged runtime.Object, err error) {
 		return nil, nil, nil
 	}
 
-	var unstructLive *unstructured.Unstructured
-	var dataLive map[string]interface{}
-	if live != nil {
-		unstructuredLive, err := runtime.DefaultUnstructuredConverter.ToUnstructured(live.DeepCopyObject())
-		if err != nil {
-			return nil, nil, err
-		}
-		unstructLive = &unstructured.Unstructured{}
-		unstructLive.SetUnstructuredContent(unstructuredLive)
-		val, found, err := unstructured.NestedMap(unstructLive.UnstructuredContent(), "data")
-		if !found {
-			return nil, nil, &errors.UnexpectedObjectError{Object: unstructLive}
-		}
-		if err != nil {
-			return nil, nil, err
-		}
-		dataLive = val
+	// Extract nested map object
+	unstructLive, dataLive, err := unstructuredNestedMap(live, "data")
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var unstructMerged *unstructured.Unstructured
-	var dataMerged map[string]interface{}
-	if merged != nil {
-		unstructuredMerged, err := runtime.DefaultUnstructuredConverter.ToUnstructured(merged.DeepCopyObject())
-		if err != nil {
-			return nil, nil, err
-		}
-		unstructMerged = &unstructured.Unstructured{}
-		unstructMerged.SetUnstructuredContent(unstructuredMerged)
-		val, found, err := unstructured.NestedMap(unstructMerged.UnstructuredContent(), "data")
-		if !found {
-			return nil, nil, &errors.UnexpectedObjectError{Object: unstructMerged}
-		}
-		if err != nil {
-			return nil, nil, err
-		}
-		dataMerged = val
+	unstructMerged, dataMerged, err := unstructuredNestedMap(merged, "data")
+	if err != nil {
+		return nil, nil, err
 	}
 
 	var (
@@ -409,6 +381,28 @@ func mask(obj Object) (live, merged runtime.Object, err error) {
 		merged = unstructMerged
 	}
 	return live, merged, nil
+}
+
+// unstructuredNestedMap returns an unstructured.Unstructured object
+// and its nested map.
+func unstructuredNestedMap(obj runtime.Object, fields ...string) (unstruct *unstructured.Unstructured, data map[string]interface{}, err error) {
+	if obj == nil || fields == nil {
+		return unstruct, data, nil
+	}
+	unstructedObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
+	if err != nil {
+		return nil, nil, err
+	}
+	unstruct = &unstructured.Unstructured{}
+	unstruct.SetUnstructuredContent(unstructedObject)
+	data, found, err := unstructured.NestedMap(unstruct.UnstructuredContent(), fields...)
+	if !found {
+		return nil, nil, &errors.UnexpectedObjectError{Object: unstruct}
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	return unstruct, data, nil
 }
 
 // InfoObject is an implementation of the Object interface. It gets all
