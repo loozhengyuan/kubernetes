@@ -321,21 +321,10 @@ func mask(obj Object) (live, merged runtime.Object, err error) {
 		return nil, nil, err
 	}
 
-	// Checks if object is v1Secret
-	switch {
-	case live != nil:
-		gvk := live.GetObjectKind().GroupVersionKind()
-		if gvk.Version != "v1" || gvk.Kind != "Secret" {
-			return live, merged, nil
-		}
-	case merged != nil:
-		gvk := merged.GetObjectKind().GroupVersionKind()
-		if gvk.Version != "v1" || gvk.Kind != "Secret" {
-			return live, merged, nil
-		}
-	default:
-		// TODO: Return error or not?
-		return nil, nil, nil
+	// Checks if object is V1Secret
+	gvk := obj.GroupVersionKind()
+	if gvk.Version != "v1" || gvk.Kind != "Secret" {
+		return live, merged, nil
 	}
 
 	// Extract nested map object

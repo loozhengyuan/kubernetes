@@ -233,24 +233,25 @@ func TestDiffer(t *testing.T) {
 func TestMask(t *testing.T) {
 	cases := []struct {
 		name       string
+		group      string
+		version    string
+		kind       string
 		live       map[string]interface{}
 		merged     map[string]interface{}
 		wantLive   runtime.Object
 		wantMerged runtime.Object
 	}{
 		{
-			name: "v1secret_no_change",
+			name:    "v1secret_no_change",
+			version: "v1",
+			kind:    "Secret",
 			live: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 					"password": "123",
 				},
 			},
 			merged: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 					"password": "123",
@@ -258,8 +259,6 @@ func TestMask(t *testing.T) {
 			},
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***",
 						"password": "***",
@@ -268,8 +267,6 @@ func TestMask(t *testing.T) {
 			},
 			wantMerged: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***",
 						"password": "***",
@@ -278,11 +275,11 @@ func TestMask(t *testing.T) {
 			},
 		},
 		{
-			name: "v1secret_object_created",
-			live: nil, // does not exist yet
+			name:    "v1secret_object_created",
+			version: "v1",
+			kind:    "Secret",
+			live:    nil, // does not exist yet
 			merged: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 					"password": "123",
@@ -291,8 +288,6 @@ func TestMask(t *testing.T) {
 			wantLive: nil, // does not exist yet
 			wantMerged: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***", // no suffix needed
 						"password": "***", // no suffix needed
@@ -301,10 +296,10 @@ func TestMask(t *testing.T) {
 			},
 		},
 		{
-			name: "v1secret_object_removed",
+			name:    "v1secret_object_removed",
+			version: "v1",
+			kind:    "Secret",
 			live: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 					"password": "123",
@@ -313,8 +308,6 @@ func TestMask(t *testing.T) {
 			merged: nil, // removed
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***", // no suffix needed
 						"password": "***", // no suffix needed
@@ -324,17 +317,15 @@ func TestMask(t *testing.T) {
 			wantMerged: nil, // removed
 		},
 		{
-			name: "v1secret_data_key_added",
+			name:    "v1secret_data_key_added",
+			version: "v1",
+			kind:    "Secret",
 			live: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 				},
 			},
 			merged: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 					"password": "123", // added
@@ -342,8 +333,6 @@ func TestMask(t *testing.T) {
 			},
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***",
 					},
@@ -351,8 +340,6 @@ func TestMask(t *testing.T) {
 			},
 			wantMerged: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***",
 						"password": "***", // no suffix needed
@@ -361,18 +348,16 @@ func TestMask(t *testing.T) {
 			},
 		},
 		{
-			name: "v1secret_data_key_changed",
+			name:    "v1secret_data_key_changed",
+			version: "v1",
+			kind:    "Secret",
 			live: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 					"password": "123",
 				},
 			},
 			merged: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 					"password": "456", // changed
@@ -380,8 +365,6 @@ func TestMask(t *testing.T) {
 			},
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***",
 						"password": "*** (before)", // added suffix for diff
@@ -390,8 +373,6 @@ func TestMask(t *testing.T) {
 			},
 			wantMerged: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***",
 						"password": "*** (after)", // added suffix for diff
@@ -400,18 +381,16 @@ func TestMask(t *testing.T) {
 			},
 		},
 		{
-			name: "v1secret_data_key_removed",
+			name:    "v1secret_data_key_removed",
+			version: "v1",
+			kind:    "Secret",
 			live: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 					"password": "123",
 				},
 			},
 			merged: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Secret",
 				"data": map[string]interface{}{
 					"username": "abc",
 					// "password": "123", // removed
@@ -419,8 +398,6 @@ func TestMask(t *testing.T) {
 			},
 			wantLive: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***",
 						"password": "***", // no suffix needed
@@ -429,8 +406,6 @@ func TestMask(t *testing.T) {
 			},
 			wantMerged: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "v1",
-					"kind":       "Secret",
 					"data": map[string]interface{}{
 						"username": "***",
 						// "password": "***",
@@ -439,7 +414,9 @@ func TestMask(t *testing.T) {
 			},
 		},
 		{
-			name: "non_v1secret",
+			name:    "non_v1secret",
+			version: "v1",
+			kind:    "Namespace",
 			live: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Namespace",
@@ -467,9 +444,12 @@ func TestMask(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			obj := &FakeObject{
-				name:   tc.name,
-				live:   tc.live,
-				merged: tc.merged,
+				name:    tc.name,
+				group:   tc.group,
+				version: tc.version,
+				kind:    tc.kind,
+				live:    tc.live,
+				merged:  tc.merged,
 			}
 			gotLive, gotMerged, err := mask(obj)
 			if err != nil {
