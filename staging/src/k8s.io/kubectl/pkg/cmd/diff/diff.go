@@ -85,6 +85,13 @@ var (
 // Number of times we try to diff before giving-up
 const maxRetries = 4
 
+// Constants for masking sensitive values
+const (
+	maskAsterisk           = "***"
+	maskAsteriskWithBefore = "*** (before)"
+	maskAsteriskWithAfter  = "*** (after)"
+)
+
 // diffError returns the ExitError if the status code is less than 1,
 // nil otherwise.
 func diffError(err error) exec.ExitError {
@@ -345,11 +352,6 @@ func mask(obj Object) (live, merged runtime.Object, err error) {
 		return nil, nil, err
 	}
 
-	var (
-		maskAsterisk           = "***"
-		maskAsteriskWithBefore = "*** (before)"
-		maskAsteriskWithAfter  = "*** (after)"
-	)
 	for k := range dataLive {
 		// Add before/after suffix when key exists on both
 		// objects and are not equal, so that it will be
