@@ -469,7 +469,7 @@ func mask(from, to runtime.Object) (runtime.Object, runtime.Object, error) {
 // and its nested map.
 func unstructuredNestedMap(obj runtime.Object, fields ...string) (unstruct *unstructured.Unstructured, data map[string]interface{}, err error) {
 	if obj == nil || fields == nil {
-		return unstruct, data, nil
+		return nil, data, nil
 	}
 	unstructedObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
 	if err != nil {
