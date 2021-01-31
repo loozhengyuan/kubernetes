@@ -569,9 +569,12 @@ func TestUnstructuredNestedMap(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, data, err := unstructuredNestedMap(tc.obj, tc.fields...)
+			unstruct, data, err := unstructuredNestedMap(tc.obj, tc.fields...)
 			if err != nil {
 				t.Fatal(err)
+			}
+			if diff := cmp.Diff(unstruct, tc.unstruct); diff != "" {
+				t.Errorf("unstruct: (-want +got):\n%s", diff)
 			}
 			if diff := cmp.Diff(data, tc.data); diff != "" {
 				t.Errorf("data: (-want +got):\n%s", diff)
