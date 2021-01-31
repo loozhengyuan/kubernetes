@@ -22,9 +22,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -515,11 +516,11 @@ func TestMask(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(from, tc.want.from) {
-				t.Errorf("from: got: %s, want: %s", from, tc.want.from)
+			if diff := cmp.Diff(from, tc.want.from); diff != "" {
+				t.Errorf("from: (-want +got):\n%s", diff)
 			}
-			if !reflect.DeepEqual(to, tc.want.to) {
-				t.Errorf("to: got: %s, want: %s", from, tc.want.to)
+			if diff := cmp.Diff(to, tc.want.to); diff != "" {
+				t.Errorf("to: (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -572,8 +573,8 @@ func TestUnstructuredNestedMap(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(data, tc.data) {
-				t.Errorf("got: %s, want: %s", data, tc.data)
+			if diff := cmp.Diff(data, tc.data); diff != "" {
+				t.Errorf("data: (-want +got):\n%s", diff)
 			}
 		})
 	}
