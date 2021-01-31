@@ -551,6 +551,13 @@ func TestUnstructuredNestedMap(t *testing.T) {
 			},
 		},
 		{
+			name:     "key_not_found",
+			obj:      obj,
+			fields:   []string{"missing"}, // should be 'nested'
+			unstruct: nil,                 // nil return
+			data:     nil,                 // nil return
+		},
+		{
 			name:     "empty_object",
 			obj:      nil,
 			fields:   []string{"nested"},
