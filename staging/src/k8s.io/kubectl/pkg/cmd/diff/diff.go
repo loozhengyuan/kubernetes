@@ -312,77 +312,6 @@ type Object interface {
 	GroupVersionKind() schema.GroupVersionKind
 }
 
-// mask conceals any secret values and returns the masked from/to versions
-// of the object.
-//
-// All secret values in the objects will be masked with a fixed-length
-// asterisk mask. If two values are different, an additional suffix will
-// be added so they can be diffed.
-func mask(from, to runtime.Object) (runtime.Object, runtime.Object, error) {
-	// Extract nested map object
-	unstructLive, dataLive, err := unstructuredNestedMap(from, "data")
-	if err != nil {
-		return nil, nil, err
-	}
-	unstructMerged, dataMerged, err := unstructuredNestedMap(to, "data")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for k := range dataLive {
-		// Add before/after suffix when key exists on both
-		// objects and are not equal, so that it will be
-		// visible in diffs.
-		if _, ok := dataMerged[k]; ok {
-			if dataLive[k] != dataMerged[k] {
-				dataLive[k] = maskAsteriskWithBefore
-				dataMerged[k] = maskAsteriskWithAfter
-				continue
-			}
-			dataMerged[k] = maskAsterisk
-		}
-		dataLive[k] = maskAsterisk
-	}
-	for k := range dataMerged {
-		// Mask remaining keys that were not in 'live'
-		if _, ok := dataLive[k]; !ok {
-			dataMerged[k] = maskAsterisk
-		}
-	}
-
-	if unstructLive != nil {
-		unstructured.SetNestedMap(unstructLive.UnstructuredContent(), dataLive, "data")
-		from = unstructLive
-	}
-	if unstructMerged != nil {
-		unstructured.SetNestedMap(unstructMerged.UnstructuredContent(), dataMerged, "data")
-		to = unstructMerged
-	}
-	return from, to, nil
-}
-
-// unstructuredNestedMap returns an unstructured.Unstructured object
-// and its nested map.
-func unstructuredNestedMap(obj runtime.Object, fields ...string) (unstruct *unstructured.Unstructured, data map[string]interface{}, err error) {
-	if obj == nil || fields == nil {
-		return unstruct, data, nil
-	}
-	unstructedObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
-	if err != nil {
-		return nil, nil, err
-	}
-	unstruct = &unstructured.Unstructured{}
-	unstruct.SetUnstructuredContent(unstructedObject)
-	data, found, err := unstructured.NestedMap(unstruct.UnstructuredContent(), fields...)
-	if !found {
-		return nil, nil, &errors.UnexpectedObjectError{Object: unstruct}
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-	return unstruct, data, nil
-}
-
 // InfoObject is an implementation of the Object interface. It gets all
 // the information from the Info object.
 type InfoObject struct {
@@ -485,6 +414,77 @@ func (obj InfoObject) Name() string {
 
 func (obj InfoObject) GroupVersionKind() schema.GroupVersionKind {
 	return obj.Info.Mapping.GroupVersionKind
+}
+
+// mask conceals any secret values and returns the masked from/to versions
+// of the object.
+//
+// All secret values in the objects will be masked with a fixed-length
+// asterisk mask. If two values are different, an additional suffix will
+// be added so they can be diffed.
+func mask(from, to runtime.Object) (runtime.Object, runtime.Object, error) {
+	// Extract nested map object
+	unstructLive, dataLive, err := unstructuredNestedMap(from, "data")
+	if err != nil {
+		return nil, nil, err
+	}
+	unstructMerged, dataMerged, err := unstructuredNestedMap(to, "data")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for k := range dataLive {
+		// Add before/after suffix when key exists on both
+		// objects and are not equal, so that it will be
+		// visible in diffs.
+		if _, ok := dataMerged[k]; ok {
+			if dataLive[k] != dataMerged[k] {
+				dataLive[k] = maskAsteriskWithBefore
+				dataMerged[k] = maskAsteriskWithAfter
+				continue
+			}
+			dataMerged[k] = maskAsterisk
+		}
+		dataLive[k] = maskAsterisk
+	}
+	for k := range dataMerged {
+		// Mask remaining keys that were not in 'live'
+		if _, ok := dataLive[k]; !ok {
+			dataMerged[k] = maskAsterisk
+		}
+	}
+
+	if unstructLive != nil {
+		unstructured.SetNestedMap(unstructLive.UnstructuredContent(), dataLive, "data")
+		from = unstructLive
+	}
+	if unstructMerged != nil {
+		unstructured.SetNestedMap(unstructMerged.UnstructuredContent(), dataMerged, "data")
+		to = unstructMerged
+	}
+	return from, to, nil
+}
+
+// unstructuredNestedMap returns an unstructured.Unstructured object
+// and its nested map.
+func unstructuredNestedMap(obj runtime.Object, fields ...string) (unstruct *unstructured.Unstructured, data map[string]interface{}, err error) {
+	if obj == nil || fields == nil {
+		return unstruct, data, nil
+	}
+	unstructedObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
+	if err != nil {
+		return nil, nil, err
+	}
+	unstruct = &unstructured.Unstructured{}
+	unstruct.SetUnstructuredContent(unstructedObject)
+	data, found, err := unstructured.NestedMap(unstruct.UnstructuredContent(), fields...)
+	if !found {
+		return nil, nil, &errors.UnexpectedObjectError{Object: unstruct}
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	return unstruct, data, nil
 }
 
 // Differ creates two DiffVersion and diffs them.
