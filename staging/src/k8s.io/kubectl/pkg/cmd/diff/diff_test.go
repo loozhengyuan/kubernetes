@@ -268,16 +268,16 @@ func TestMask(t *testing.T) {
 				from: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"data": map[string]interface{}{
-							"username": "***",
-							"password": "***",
+							"username": "***", // still masked
+							"password": "***", // still masked
 						},
 					},
 				},
 				to: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"data": map[string]interface{}{
-							"username": "***",
-							"password": "***",
+							"username": "***", // still masked
+							"password": "***", // still masked
 						},
 					},
 				},
