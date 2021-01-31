@@ -479,7 +479,7 @@ func unstructuredNestedMap(obj runtime.Object, fields ...string) (unstruct *unst
 	unstruct.SetUnstructuredContent(unstructedObject)
 	data, found, err := unstructured.NestedMap(unstruct.UnstructuredContent(), fields...)
 	if !found {
-		return nil, nil, &errors.UnexpectedObjectError{Object: unstruct}
+		return nil, data, nil
 	}
 	if err != nil {
 		return nil, nil, err
