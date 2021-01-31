@@ -136,7 +136,11 @@ func TestDiffVersion(t *testing.T) {
 		live:   map[string]interface{}{"live": true},
 		merged: map[string]interface{}{"merged": true},
 	}
-	err = diff.Print(&obj, Printer{})
+	rObj, err := obj.Merged()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = diff.Print(obj.Name(), rObj, Printer{})
 	if err != nil {
 		t.Fatal(err)
 	}

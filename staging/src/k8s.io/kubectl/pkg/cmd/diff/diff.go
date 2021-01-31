@@ -265,17 +265,13 @@ func (v *DiffVersion) getObject(obj Object) (runtime.Object, error) {
 }
 
 // Print prints the object using the printer into a new file in the directory.
-func (v *DiffVersion) Print(obj Object, printer Printer) error {
-	vobj, err := v.getObject(obj)
-	if err != nil {
-		return err
-	}
-	f, err := v.Dir.NewFile(obj.Name())
+func (v *DiffVersion) Print(name string, obj runtime.Object, printer Printer) error {
+	f, err := v.Dir.NewFile(name)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return printer.Print(vobj, f)
+	return printer.Print(obj, f)
 }
 
 // Directory creates a new temp directory, and allows to easily create new files.
@@ -530,10 +526,21 @@ func NewDiffer(from, to string) (*Differ, error) {
 
 // Diff diffs to versions of a specific object, and print both versions to directories.
 func (d *Differ) Diff(obj Object, printer Printer) error {
-	if err := d.From.Print(obj, printer); err != nil {
+	from, err := d.From.getObject(obj)
+	if err != nil {
 		return err
 	}
-	if err := d.To.Print(obj, printer); err != nil {
+	to, err := d.To.getObject(obj)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Mask secret values if V1Secret
+
+	if err := d.From.Print(obj.Name(), from, printer); err != nil {
+		return err
+	}
+	if err := d.To.Print(obj.Name(), to, printer); err != nil {
 		return err
 	}
 	return nil
