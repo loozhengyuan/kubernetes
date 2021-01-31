@@ -520,7 +520,13 @@ func (d *Differ) Diff(obj Object, printer Printer) error {
 		return err
 	}
 
-	// TODO: Mask secret values if V1Secret
+	// Mask secret values if object is V1Secret
+	if gvk := obj.GroupVersionKind(); gvk.Version == "v1" && gvk.Kind == "Secret" {
+		from, to, err = mask(from, to)
+		if err != nil {
+			return err
+		}
+	}
 
 	if err := d.From.Print(obj.Name(), from, printer); err != nil {
 		return err
