@@ -448,6 +448,64 @@ func TestMask(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "empty_secret_from",
+			input: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{}, // no data key
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "123",
+						},
+					},
+				},
+			},
+			want: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{}, // no data key
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+							"password": "***",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "empty_secret_to",
+			input: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "123",
+						},
+					},
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{}, // no data key
+				},
+			},
+			want: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+							"password": "***",
+						},
+					},
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{}, // no data key
+				},
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc // capture range variable
