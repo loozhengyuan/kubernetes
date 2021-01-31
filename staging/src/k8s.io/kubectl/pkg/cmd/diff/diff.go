@@ -312,34 +312,19 @@ type Object interface {
 	GroupVersionKind() schema.GroupVersionKind
 }
 
-// mask conceals any secret values and returns the live/merged versions
+// mask conceals any secret values and returns the masked from/to versions
 // of the object.
-//
-// mask only operates on V1Secret objects; any other objects will
-// be returned as-is.
 //
 // All secret values in the objects will be masked with a fixed-length
 // asterisk mask. If two values are different, an additional suffix will
 // be added so they can be diffed.
-func mask(obj Object) (live, merged runtime.Object, err error) {
-	live = obj.Live()
-	merged, err = obj.Merged()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Checks if object is V1Secret
-	gvk := obj.GroupVersionKind()
-	if gvk.Version != "v1" || gvk.Kind != "Secret" {
-		return live, merged, nil
-	}
-
+func mask(from, to runtime.Object) (runtime.Object, runtime.Object, error) {
 	// Extract nested map object
-	unstructLive, dataLive, err := unstructuredNestedMap(live, "data")
+	unstructLive, dataLive, err := unstructuredNestedMap(from, "data")
 	if err != nil {
 		return nil, nil, err
 	}
-	unstructMerged, dataMerged, err := unstructuredNestedMap(merged, "data")
+	unstructMerged, dataMerged, err := unstructuredNestedMap(to, "data")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -367,13 +352,13 @@ func mask(obj Object) (live, merged runtime.Object, err error) {
 
 	if unstructLive != nil {
 		unstructured.SetNestedMap(unstructLive.UnstructuredContent(), dataLive, "data")
-		live = unstructLive
+		from = unstructLive
 	}
 	if unstructMerged != nil {
 		unstructured.SetNestedMap(unstructMerged.UnstructuredContent(), dataMerged, "data")
-		merged = unstructMerged
+		to = unstructMerged
 	}
-	return live, merged, nil
+	return from, to, nil
 }
 
 // unstructuredNestedMap returns an unstructured.Unstructured object

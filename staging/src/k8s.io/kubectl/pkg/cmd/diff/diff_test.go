@@ -235,217 +235,215 @@ func TestDiffer(t *testing.T) {
 }
 
 func TestMask(t *testing.T) {
+	type diff struct {
+		from runtime.Object
+		to   runtime.Object
+	}
 	cases := []struct {
-		name       string
-		group      string
-		version    string
-		kind       string
-		live       map[string]interface{}
-		merged     map[string]interface{}
-		wantLive   runtime.Object
-		wantMerged runtime.Object
+		name  string
+		input diff
+		want  diff
 	}{
 		{
-			name:    "v1secret_no_change",
-			version: "v1",
-			kind:    "Secret",
-			live: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "123",
+			name: "no_changes",
+			input: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "123",
+						},
+					},
 				},
-			},
-			merged: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "123",
-				},
-			},
-			wantLive: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***",
-						"password": "***",
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "123",
+						},
 					},
 				},
 			},
-			wantMerged: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***",
-						"password": "***",
+			want: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+							"password": "***",
+						},
 					},
 				},
-			},
-		},
-		{
-			name:    "v1secret_object_created",
-			version: "v1",
-			kind:    "Secret",
-			live:    nil, // does not exist yet
-			merged: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "123",
-				},
-			},
-			wantLive: nil, // does not exist yet
-			wantMerged: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***", // no suffix needed
-						"password": "***", // no suffix needed
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+							"password": "***",
+						},
 					},
 				},
 			},
 		},
 		{
-			name:    "v1secret_object_removed",
-			version: "v1",
-			kind:    "Secret",
-			live: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "123",
-				},
-			},
-			merged: nil, // removed
-			wantLive: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***", // no suffix needed
-						"password": "***", // no suffix needed
+			name: "object_created",
+			input: diff{
+				from: nil, // does not exist yet
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "123",
+						},
 					},
 				},
 			},
-			wantMerged: nil, // removed
-		},
-		{
-			name:    "v1secret_data_key_added",
-			version: "v1",
-			kind:    "Secret",
-			live: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-				},
-			},
-			merged: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "123", // added
-				},
-			},
-			wantLive: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***",
-					},
-				},
-			},
-			wantMerged: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***",
-						"password": "***", // no suffix needed
+			want: diff{
+				from: nil, // does not exist yet
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***", // no suffix needed
+							"password": "***", // no suffix needed
+						},
 					},
 				},
 			},
 		},
 		{
-			name:    "v1secret_data_key_changed",
-			version: "v1",
-			kind:    "Secret",
-			live: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "123",
+			name: "object_removed",
+			input: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "123",
+						},
+					},
 				},
+				to: nil, // removed
 			},
-			merged: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "456", // changed
+			want: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***", // no suffix needed
+							"password": "***", // no suffix needed
+						},
+					},
 				},
+				to: nil, // removed
 			},
-			wantLive: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***",
-						"password": "*** (before)", // added suffix for diff
+		},
+		{
+			name: "data_key_added",
+			input: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+						},
+					},
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "123", // added
+						},
 					},
 				},
 			},
-			wantMerged: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***",
-						"password": "*** (after)", // added suffix for diff
+			want: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+						},
+					},
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+							"password": "***", // no suffix needed
+						},
 					},
 				},
 			},
 		},
 		{
-			name:    "v1secret_data_key_removed",
-			version: "v1",
-			kind:    "Secret",
-			live: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "123",
+			name: "data_key_changed",
+			input: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "123",
+						},
+					},
 				},
-			},
-			merged: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					// "password": "123", // removed
-				},
-			},
-			wantLive: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***",
-						"password": "***", // no suffix needed
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "456", // changed
+						},
 					},
 				},
 			},
-			wantMerged: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "***",
-						// "password": "***",
+			want: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+							"password": "*** (before)", // added suffix for diff
+						},
+					},
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+							"password": "*** (after)", // added suffix for diff
+						},
 					},
 				},
 			},
 		},
 		{
-			name:    "unsupported_object_v1configmap",
-			version: "v1",
-			kind:    "Namespace",
-			live: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "123",
+			name: "data_key_removed",
+			input: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							"password": "123",
+						},
+					},
 				},
-			},
-			merged: map[string]interface{}{
-				"data": map[string]interface{}{
-					"username": "abc",
-					"password": "123",
-				},
-			},
-			wantLive: &unstructured.Unstructured{ // no masking; passthrough as-is
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "abc",
-						"password": "123",
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "abc",
+							// "password": "123", // removed
+						},
 					},
 				},
 			},
-			wantMerged: &unstructured.Unstructured{ // no masking; passthrough as-is
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{
-						"username": "abc",
-						"password": "123",
+			want: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+							"password": "***", // no suffix needed
+						},
+					},
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"data": map[string]interface{}{
+							"username": "***",
+							// "password": "***",
+						},
 					},
 				},
 			},
@@ -455,23 +453,15 @@ func TestMask(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			obj := &FakeObject{
-				name:    tc.name,
-				group:   tc.group,
-				version: tc.version,
-				kind:    tc.kind,
-				live:    tc.live,
-				merged:  tc.merged,
-			}
-			gotLive, gotMerged, err := mask(obj)
+			from, to, err := mask(tc.input.from, tc.input.to)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(gotLive, tc.wantLive) {
-				t.Errorf("live: got: %s, want: %s", gotLive, tc.wantLive)
+			if !reflect.DeepEqual(from, tc.want.from) {
+				t.Errorf("from: got: %s, want: %s", from, tc.want.from)
 			}
-			if !reflect.DeepEqual(gotMerged, tc.wantMerged) {
-				t.Errorf("merged: got: %s, want: %s", gotMerged, tc.wantMerged)
+			if !reflect.DeepEqual(to, tc.want.to) {
+				t.Errorf("to: got: %s, want: %s", from, tc.want.to)
 			}
 		})
 	}
