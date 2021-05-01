@@ -417,7 +417,7 @@ func toUnstructured(obj runtime.Object) (*unstructured.Unstructured, error) {
 	}
 	c, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("convert to unstructured: %w", err)
 	}
 	u := &unstructured.Unstructured{}
 	u.SetUnstructuredContent(c)
@@ -431,7 +431,7 @@ func dataFromUnstructured(u *unstructured.Unstructured) (map[string]interface{},
 	}
 	data, found, err := unstructured.NestedMap(u.UnstructuredContent(), "data")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get nested map: %w", err)
 	}
 	if !found {
 		return nil, nil
@@ -469,11 +469,11 @@ func (m *Masker) Run() error {
 	// Extract nested map object
 	from, err := dataFromUnstructured(m.From)
 	if err != nil {
-		return err
+		return fmt.Errorf("extract 'data' field: %w", err)
 	}
 	to, err := dataFromUnstructured(m.To)
 	if err != nil {
-		return err
+		return fmt.Errorf("extract 'data' field: %w", err)
 	}
 
 	for k := range from {
@@ -500,12 +500,12 @@ func (m *Masker) Run() error {
 	// Patch objects with masked data
 	if m.From != nil && from != nil {
 		if err := unstructured.SetNestedMap(m.From.UnstructuredContent(), from, "data"); err != nil {
-			return err
+			return fmt.Errorf("patch masked data: %w", err)
 		}
 	}
 	if m.To != nil && to != nil {
 		if err := unstructured.SetNestedMap(m.To.UnstructuredContent(), to, "data"); err != nil {
-			return err
+			return fmt.Errorf("patch masked data: %w", err)
 		}
 	}
 	return nil
