@@ -86,9 +86,9 @@ const maxRetries = 4
 
 // Constants for masking sensitive values
 const (
-	maskAsterisk           = "***"
-	maskAsteriskWithBefore = "*** (before)"
-	maskAsteriskWithAfter  = "*** (after)"
+	sensitiveMaskDefault = "***"
+	sensitiveMaskBefore  = "*** (before)"
+	sensitiveMaskAfter   = "*** (after)"
 )
 
 // diffError returns the ExitError if the status code is less than 1,
@@ -483,18 +483,18 @@ func (m *Masker) Run() error {
 		// visible in diffs.
 		if _, ok := to[k]; ok {
 			if from[k] != to[k] {
-				from[k] = maskAsteriskWithBefore
-				to[k] = maskAsteriskWithAfter
+				from[k] = sensitiveMaskBefore
+				to[k] = sensitiveMaskAfter
 				continue
 			}
-			to[k] = maskAsterisk
+			to[k] = sensitiveMaskDefault
 		}
-		from[k] = maskAsterisk
+		from[k] = sensitiveMaskDefault
 	}
 	for k := range to {
 		// Mask remaining keys that were not in 'live'
 		if _, ok := from[k]; !ok {
-			to[k] = maskAsterisk
+			to[k] = sensitiveMaskDefault
 		}
 	}
 
