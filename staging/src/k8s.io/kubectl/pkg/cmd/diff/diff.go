@@ -513,6 +513,22 @@ func (m *Masker) Mask() (runtime.Object, runtime.Object, error) {
 	return f, t, nil
 }
 
+func (m *Masker) MaskFrom() (runtime.Object, error) {
+	f, _, err := m.Mask()
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+func (m *Masker) MaskTo() (runtime.Object, error) {
+	_, t, err := m.Mask()
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
 // Differ creates two DiffVersion and diffs them.
 type Differ struct {
 	From *DiffVersion
