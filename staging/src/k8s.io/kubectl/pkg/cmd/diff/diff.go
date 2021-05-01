@@ -424,21 +424,6 @@ func toUnstructured(obj runtime.Object) (*unstructured.Unstructured, error) {
 	return u, nil
 }
 
-// dataFromUnstructured returns the underlying nested map in the data key.
-func dataFromUnstructured(u *unstructured.Unstructured) (map[string]interface{}, error) {
-	if u == nil {
-		return nil, nil
-	}
-	data, found, err := unstructured.NestedMap(u.UnstructuredContent(), "data")
-	if err != nil {
-		return nil, fmt.Errorf("get nested map: %w", err)
-	}
-	if !found {
-		return nil, nil
-	}
-	return data, nil
-}
-
 type Masker struct {
 	From *unstructured.Unstructured
 	To   *unstructured.Unstructured
@@ -459,6 +444,21 @@ func NewMasker(from, to runtime.Object) (*Masker, error) {
 	}, nil
 }
 
+// dataFromUnstructured returns the underlying nested map in the data key.
+func (m Masker) dataFromUnstructured(u *unstructured.Unstructured) (map[string]interface{}, error) {
+	if u == nil {
+		return nil, nil
+	}
+	data, found, err := unstructured.NestedMap(u.UnstructuredContent(), "data")
+	if err != nil {
+		return nil, fmt.Errorf("get nested map: %w", err)
+	}
+	if !found {
+		return nil, nil
+	}
+	return data, nil
+}
+
 // Run compares the data field in each from/to versions of an object
 // and masks all sensitive values.
 //
@@ -467,11 +467,11 @@ func NewMasker(from, to runtime.Object) (*Masker, error) {
 // be added so they can be diffed.
 func (m *Masker) Run() error {
 	// Extract nested map object
-	from, err := dataFromUnstructured(m.From)
+	from, err := m.dataFromUnstructured(m.From)
 	if err != nil {
 		return fmt.Errorf("extract 'data' field: %w", err)
 	}
-	to, err := dataFromUnstructured(m.To)
+	to, err := m.dataFromUnstructured(m.To)
 	if err != nil {
 		return fmt.Errorf("extract 'data' field: %w", err)
 	}
