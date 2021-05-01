@@ -410,55 +410,6 @@ func (obj InfoObject) Name() string {
 	)
 }
 
-// mask conceals any secret values and returns the masked from/to versions
-// of the object.
-//
-// All secret values in the objects will be masked with a fixed-length
-// asterisk mask. If two values are different, an additional suffix will
-// be added so they can be diffed.
-func mask(from, to runtime.Object) (runtime.Object, runtime.Object, error) {
-	// Extract nested map object
-	unstructLive, dataLive, err := unstructuredNestedMap(from, "data")
-	if err != nil {
-		return nil, nil, err
-	}
-	unstructMerged, dataMerged, err := unstructuredNestedMap(to, "data")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for k := range dataLive {
-		// Add before/after suffix when key exists on both
-		// objects and are not equal, so that it will be
-		// visible in diffs.
-		if _, ok := dataMerged[k]; ok {
-			if dataLive[k] != dataMerged[k] {
-				dataLive[k] = maskAsteriskWithBefore
-				dataMerged[k] = maskAsteriskWithAfter
-				continue
-			}
-			dataMerged[k] = maskAsterisk
-		}
-		dataLive[k] = maskAsterisk
-	}
-	for k := range dataMerged {
-		// Mask remaining keys that were not in 'live'
-		if _, ok := dataLive[k]; !ok {
-			dataMerged[k] = maskAsterisk
-		}
-	}
-
-	if unstructLive != nil {
-		unstructured.SetNestedMap(unstructLive.UnstructuredContent(), dataLive, "data")
-		from = unstructLive
-	}
-	if unstructMerged != nil {
-		unstructured.SetNestedMap(unstructMerged.UnstructuredContent(), dataMerged, "data")
-		to = unstructMerged
-	}
-	return from, to, nil
-}
-
 // unstructuredNestedMap returns an unstructured.Unstructured object
 // and its nested map.
 func unstructuredNestedMap(obj runtime.Object, fields ...string) (unstruct *unstructured.Unstructured, data map[string]interface{}, err error) {
@@ -486,8 +437,53 @@ type Masker struct {
 	To   runtime.Object
 }
 
+// Mask conceals any secret values and returns the masked from/to versions
+// of the object.
+//
+// All secret values in the objects will be masked with a fixed-length
+// asterisk mask. If two values are different, an additional suffix will
+// be added so they can be diffed.
 func (m *Masker) Mask() (runtime.Object, runtime.Object, error) {
-	return mask(m.From, m.To)
+	// Extract nested map object
+	unstructLive, dataLive, err := unstructuredNestedMap(m.From, "data")
+	if err != nil {
+		return nil, nil, err
+	}
+	unstructMerged, dataMerged, err := unstructuredNestedMap(m.To, "data")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for k := range dataLive {
+		// Add before/after suffix when key exists on both
+		// objects and are not equal, so that it will be
+		// visible in diffs.
+		if _, ok := dataMerged[k]; ok {
+			if dataLive[k] != dataMerged[k] {
+				dataLive[k] = maskAsteriskWithBefore
+				dataMerged[k] = maskAsteriskWithAfter
+				continue
+			}
+			dataMerged[k] = maskAsterisk
+		}
+		dataLive[k] = maskAsterisk
+	}
+	for k := range dataMerged {
+		// Mask remaining keys that were not in 'live'
+		if _, ok := dataLive[k]; !ok {
+			dataMerged[k] = maskAsterisk
+		}
+	}
+
+	if unstructLive != nil {
+		unstructured.SetNestedMap(unstructLive.UnstructuredContent(), dataLive, "data")
+		m.From = unstructLive
+	}
+	if unstructMerged != nil {
+		unstructured.SetNestedMap(unstructMerged.UnstructuredContent(), dataMerged, "data")
+		m.To = unstructMerged
+	}
+	return m.From, m.To, nil
 }
 
 // Differ creates two DiffVersion and diffs them.
