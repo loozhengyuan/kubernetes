@@ -506,11 +506,9 @@ func TestMasker(t *testing.T) {
 			}
 			from, to := m.From(), m.To()
 			if diff := cmp.Diff(from, tc.want.from); diff != "" {
-				t.Logf("%T\n%T\n", from, tc.want.from)
 				t.Errorf("from: (-want +got):\n%s", diff)
 			}
 			if diff := cmp.Diff(to, tc.want.to); diff != "" {
-				t.Logf("%T\n%T\n", to, tc.want.to)
 				t.Errorf("to: (-want +got):\n%s", diff)
 			}
 		})
