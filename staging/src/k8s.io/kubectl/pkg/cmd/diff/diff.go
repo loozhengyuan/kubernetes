@@ -568,7 +568,11 @@ func (d *Differ) Diff(obj Object, printer Printer) error {
 		if err != nil {
 			return err
 		}
-		from, to, err = m.Mask()
+		from, err = m.MaskFrom()
+		if err != nil {
+			return err
+		}
+		to, err = m.MaskTo()
 		if err != nil {
 			return err
 		}
