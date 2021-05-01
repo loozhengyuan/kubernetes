@@ -467,46 +467,46 @@ func NewMasker(from, to runtime.Object) (*Masker, error) {
 // be added so they can be diffed.
 func (m *Masker) Mask() (runtime.Object, runtime.Object, error) {
 	// Extract nested map object
-	dataLive, err := dataFromUnstructured(m.From)
+	from, err := dataFromUnstructured(m.From)
 	if err != nil {
 		return nil, nil, err
 	}
-	dataMerged, err := dataFromUnstructured(m.To)
+	to, err := dataFromUnstructured(m.To)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	for k := range dataLive {
+	for k := range from {
 		// Add before/after suffix when key exists on both
 		// objects and are not equal, so that it will be
 		// visible in diffs.
-		if _, ok := dataMerged[k]; ok {
-			if dataLive[k] != dataMerged[k] {
-				dataLive[k] = maskAsteriskWithBefore
-				dataMerged[k] = maskAsteriskWithAfter
+		if _, ok := to[k]; ok {
+			if from[k] != to[k] {
+				from[k] = maskAsteriskWithBefore
+				to[k] = maskAsteriskWithAfter
 				continue
 			}
-			dataMerged[k] = maskAsterisk
+			to[k] = maskAsterisk
 		}
-		dataLive[k] = maskAsterisk
+		from[k] = maskAsterisk
 	}
-	for k := range dataMerged {
+	for k := range to {
 		// Mask remaining keys that were not in 'live'
-		if _, ok := dataLive[k]; !ok {
-			dataMerged[k] = maskAsterisk
+		if _, ok := from[k]; !ok {
+			to[k] = maskAsterisk
 		}
 	}
 
 	var f, t runtime.Object
 	if m.From != nil {
-		if dataLive != nil {
-			unstructured.SetNestedMap(m.From.UnstructuredContent(), dataLive, "data")
+		if from != nil {
+			unstructured.SetNestedMap(m.From.UnstructuredContent(), from, "data")
 		}
 		f = m.From
 	}
 	if m.To != nil {
-		if dataMerged != nil {
-			unstructured.SetNestedMap(m.To.UnstructuredContent(), dataMerged, "data")
+		if to != nil {
+			unstructured.SetNestedMap(m.To.UnstructuredContent(), to, "data")
 		}
 		t = m.To
 	}
