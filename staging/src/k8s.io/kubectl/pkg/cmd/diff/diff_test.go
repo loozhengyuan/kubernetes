@@ -504,11 +504,11 @@ func TestMasker_Mask(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			from, err := m.MaskFrom()
+			from, err := m.From()
 			if err != nil {
 				t.Fatal(err)
 			}
-			to, err := m.MaskTo()
+			to, err := m.To()
 			if err != nil {
 				t.Fatal(err)
 			}
