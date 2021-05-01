@@ -515,27 +515,19 @@ func (m *Masker) Run() error {
 }
 
 // From returns the masked version of the 'from' object.
-func (m *Masker) From() (runtime.Object, error) {
-	var obj runtime.Object
-	if err := m.Run(); err != nil {
-		return nil, err
+func (m *Masker) From() runtime.Object {
+	if m.from == nil {
+		return nil
 	}
-	if m.from != nil {
-		obj = m.from
-	}
-	return obj, nil
+	return m.from
 }
 
 // To returns the masked version of the 'to' object.
-func (m *Masker) To() (runtime.Object, error) {
-	var obj runtime.Object
-	if err := m.Run(); err != nil {
-		return nil, err
+func (m *Masker) To() runtime.Object {
+	if m.to == nil {
+		return nil
 	}
-	if m.to != nil {
-		obj = m.to
-	}
-	return obj, nil
+	return m.to
 }
 
 // Differ creates two DiffVersion and diffs them.
@@ -577,14 +569,10 @@ func (d *Differ) Diff(obj Object, printer Printer) error {
 		if err != nil {
 			return err
 		}
-		from, err = m.From()
-		if err != nil {
+		if err := m.Run(); err != nil {
 			return err
 		}
-		to, err = m.To()
-		if err != nil {
-			return err
-		}
+		from, to = m.From(), m.To()
 	}
 
 	if err := d.From.Print(obj.Name(), from, printer); err != nil {
