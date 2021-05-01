@@ -504,9 +504,6 @@ func TestMasker(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := m.run(); err != nil {
-				t.Fatal(err)
-			}
 			from, to := m.From(), m.To()
 			if diff := cmp.Diff(from, tc.want.from); diff != "" {
 				t.Logf("%T\n%T\n", from, tc.want.from)

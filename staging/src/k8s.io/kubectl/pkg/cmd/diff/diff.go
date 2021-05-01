@@ -436,6 +436,7 @@ type Masker struct {
 }
 
 func NewMasker(from, to runtime.Object) (*Masker, error) {
+	// Convert objects to unstructured
 	f, err := toUnstructured(from)
 	if err != nil {
 		return nil, fmt.Errorf("convert to unstructured: %w", err)
@@ -444,9 +445,14 @@ func NewMasker(from, to runtime.Object) (*Masker, error) {
 	if err != nil {
 		return nil, fmt.Errorf("convert to unstructured: %w", err)
 	}
+
+	// Run masker
 	m := &Masker{
 		from: f,
 		to:   t,
+	}
+	if err := m.run(); err != nil {
+		return nil, fmt.Errorf("run masker: %w", err)
 	}
 	return m, nil
 }
@@ -566,9 +572,6 @@ func (d *Differ) Diff(obj Object, printer Printer) error {
 	if gvk := obj.Live().GetObjectKind().GroupVersionKind(); gvk.Version == "v1" && gvk.Kind == "Secret" {
 		m, err := NewMasker(from, to)
 		if err != nil {
-			return err
-		}
-		if err := m.run(); err != nil {
 			return err
 		}
 		from, to = m.From(), m.To()
