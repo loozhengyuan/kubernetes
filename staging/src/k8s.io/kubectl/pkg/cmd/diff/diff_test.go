@@ -223,7 +223,7 @@ func TestDiffer(t *testing.T) {
 	}
 }
 
-func TestMasker_Mask(t *testing.T) {
+func TestMasker(t *testing.T) {
 	type diff struct {
 		from runtime.Object
 		to   runtime.Object
