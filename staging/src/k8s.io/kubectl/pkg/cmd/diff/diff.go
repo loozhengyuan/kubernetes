@@ -412,24 +412,24 @@ func (obj InfoObject) Name() string {
 
 // unstructuredNestedMap returns an unstructured.Unstructured object
 // and its nested map.
-func unstructuredNestedMap(obj runtime.Object, fields ...string) (unstruct *unstructured.Unstructured, data map[string]interface{}, err error) {
+func unstructuredNestedMap(obj runtime.Object, fields ...string) (*unstructured.Unstructured, map[string]interface{}, error) {
 	if obj == nil || fields == nil {
-		return nil, data, nil
+		return nil, nil, nil
 	}
-	unstructedObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
+	c, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
 	if err != nil {
 		return nil, nil, err
 	}
-	unstruct = &unstructured.Unstructured{}
-	unstruct.SetUnstructuredContent(unstructedObject)
-	data, found, err := unstructured.NestedMap(unstruct.UnstructuredContent(), fields...)
+	u := &unstructured.Unstructured{}
+	u.SetUnstructuredContent(c)
+	data, found, err := unstructured.NestedMap(u.UnstructuredContent(), fields...)
 	if !found {
-		return nil, data, nil
+		return nil, nil, nil
 	}
 	if err != nil {
 		return nil, nil, err
 	}
-	return unstruct, data, nil
+	return u, data, nil
 }
 
 type Masker struct {
