@@ -425,8 +425,8 @@ func toUnstructured(obj runtime.Object) (*unstructured.Unstructured, error) {
 }
 
 type Masker struct {
-	From *unstructured.Unstructured
-	To   *unstructured.Unstructured
+	from *unstructured.Unstructured
+	to   *unstructured.Unstructured
 }
 
 func NewMasker(from, to runtime.Object) (*Masker, error) {
@@ -438,10 +438,11 @@ func NewMasker(from, to runtime.Object) (*Masker, error) {
 	if err != nil {
 		return nil, fmt.Errorf("convert to unstructured: %w", err)
 	}
-	return &Masker{
-		From: f,
-		To:   t,
-	}, nil
+	m := &Masker{
+		from: f,
+		to:   t,
+	}
+	return m, nil
 }
 
 // dataFromUnstructured returns the underlying nested map in the data key.
@@ -467,11 +468,11 @@ func (m Masker) dataFromUnstructured(u *unstructured.Unstructured) (map[string]i
 // be added so they can be diffed.
 func (m *Masker) Run() error {
 	// Extract nested map object
-	from, err := m.dataFromUnstructured(m.From)
+	from, err := m.dataFromUnstructured(m.from)
 	if err != nil {
 		return fmt.Errorf("extract 'data' field: %w", err)
 	}
-	to, err := m.dataFromUnstructured(m.To)
+	to, err := m.dataFromUnstructured(m.to)
 	if err != nil {
 		return fmt.Errorf("extract 'data' field: %w", err)
 	}
@@ -498,13 +499,13 @@ func (m *Masker) Run() error {
 	}
 
 	// Patch objects with masked data
-	if m.From != nil && from != nil {
-		if err := unstructured.SetNestedMap(m.From.UnstructuredContent(), from, "data"); err != nil {
+	if m.from != nil && from != nil {
+		if err := unstructured.SetNestedMap(m.from.UnstructuredContent(), from, "data"); err != nil {
 			return fmt.Errorf("patch masked data: %w", err)
 		}
 	}
-	if m.To != nil && to != nil {
-		if err := unstructured.SetNestedMap(m.To.UnstructuredContent(), to, "data"); err != nil {
+	if m.to != nil && to != nil {
+		if err := unstructured.SetNestedMap(m.to.UnstructuredContent(), to, "data"); err != nil {
 			return fmt.Errorf("patch masked data: %w", err)
 		}
 	}
@@ -516,8 +517,8 @@ func (m *Masker) MaskFrom() (runtime.Object, error) {
 	if err := m.Run(); err != nil {
 		return nil, err
 	}
-	if m.From != nil {
-		obj = m.From
+	if m.from != nil {
+		obj = m.from
 	}
 	return obj, nil
 }
@@ -527,8 +528,8 @@ func (m *Masker) MaskTo() (runtime.Object, error) {
 	if err := m.Run(); err != nil {
 		return nil, err
 	}
-	if m.To != nil {
-		obj = m.To
+	if m.to != nil {
+		obj = m.to
 	}
 	return obj, nil
 }
