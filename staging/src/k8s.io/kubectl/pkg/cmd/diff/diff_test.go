@@ -223,7 +223,7 @@ func TestDiffer(t *testing.T) {
 	}
 }
 
-func TestMask(t *testing.T) {
+func TestMasker_Mask(t *testing.T) {
 	type diff struct {
 		from runtime.Object
 		to   runtime.Object
@@ -500,7 +500,11 @@ func TestMask(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			from, to, err := mask(tc.input.from, tc.input.to)
+			m := Masker{
+				From: tc.input.from,
+				To:   tc.input.to,
+			}
+			from, to, err := m.Mask()
 			if err != nil {
 				t.Fatal(err)
 			}

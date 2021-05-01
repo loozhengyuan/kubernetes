@@ -481,6 +481,15 @@ func unstructuredNestedMap(obj runtime.Object, fields ...string) (unstruct *unst
 	return unstruct, data, nil
 }
 
+type Masker struct {
+	From runtime.Object
+	To   runtime.Object
+}
+
+func (m *Masker) Mask() (runtime.Object, runtime.Object, error) {
+	return mask(m.From, m.To)
+}
+
 // Differ creates two DiffVersion and diffs them.
 type Differ struct {
 	From *DiffVersion
@@ -516,7 +525,11 @@ func (d *Differ) Diff(obj Object, printer Printer) error {
 
 	// Mask secret values if object is V1Secret
 	if gvk := obj.Live().GetObjectKind().GroupVersionKind(); gvk.Version == "v1" && gvk.Kind == "Secret" {
-		from, to, err = mask(from, to)
+		m := Masker{
+			From: from,
+			To:   to,
+		}
+		from, to, err = m.Mask()
 		if err != nil {
 			return err
 		}
