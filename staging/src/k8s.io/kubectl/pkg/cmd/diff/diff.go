@@ -17,7 +17,6 @@ limitations under the License.
 package diff
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,7 +27,6 @@ import (
 
 	"github.com/jonboulle/clockwork"
 	"github.com/spf13/cobra"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,18 +84,11 @@ var (
 // Number of times we try to diff before giving-up
 const maxRetries = 4
 
-// // Constants for masking sensitive values
-// const (
-// 	maskAsterisk           = "***"
-// 	maskAsteriskWithBefore = "*** (before)"
-// 	maskAsteriskWithAfter  = "*** (after)"
-// )
-
-// Variables for masking sensitive values
-var (
-	maskAsterisk           = []byte("***")
-	maskAsteriskWithBefore = []byte("*** (before)")
-	maskAsteriskWithAfter  = []byte("*** (after)")
+// Constants for masking sensitive values
+const (
+	maskAsterisk           = "***"
+	maskAsteriskWithBefore = "*** (before)"
+	maskAsteriskWithAfter  = "*** (after)"
 )
 
 // diffError returns the ExitError if the status code is less than 1,
@@ -426,52 +417,46 @@ func (obj InfoObject) Name() string {
 // asterisk mask. If two values are different, an additional suffix will
 // be added so they can be diffed.
 func mask(from, to runtime.Object) (runtime.Object, runtime.Object, error) {
-	f, err := unstructuredDecoder(from)
+	// Extract nested map object
+	unstructLive, dataLive, err := unstructuredNestedMap(from, "data")
 	if err != nil {
-		return nil, nil, fmt.Errorf("decode to secret: %v", err)
+		return nil, nil, err
 	}
-	t, err := unstructuredDecoder(to)
+	unstructMerged, dataMerged, err := unstructuredNestedMap(to, "data")
 	if err != nil {
-		return nil, nil, fmt.Errorf("decode to secret: %v", err)
+		return nil, nil, err
 	}
 
-	for k := range f.Data {
+	for k := range dataLive {
 		// Add before/after suffix when key exists on both
 		// objects and are not equal, so that it will be
 		// visible in diffs.
-		if _, ok := t.Data[k]; ok {
-			if !bytes.Equal(f.Data[k], t.Data[k]) {
-				f.Data[k] = maskAsteriskWithBefore
-				t.Data[k] = maskAsteriskWithAfter
+		if _, ok := dataMerged[k]; ok {
+			if dataLive[k] != dataMerged[k] {
+				dataLive[k] = maskAsteriskWithBefore
+				dataMerged[k] = maskAsteriskWithAfter
 				continue
 			}
-			t.Data[k] = maskAsterisk
+			dataMerged[k] = maskAsterisk
 		}
-		f.Data[k] = maskAsterisk
+		dataLive[k] = maskAsterisk
 	}
-	for k := range t.Data {
+	for k := range dataMerged {
 		// Mask remaining keys that were not in 'live'
-		if _, ok := f.Data[k]; !ok {
-			t.Data[k] = maskAsterisk
+		if _, ok := dataLive[k]; !ok {
+			dataMerged[k] = maskAsterisk
 		}
 	}
-	return f, t, nil
-}
 
-// unstructuredDecoder decodes a runtime.Object into a type object.
-func unstructuredDecoder(obj runtime.Object) (*corev1.Secret, error) {
-	// if obj == nil {
-	// 	return nil, nil
-	// }
-	u, ok := obj.(*unstructured.Unstructured)
-	if !ok {
-		return nil, fmt.Errorf("type assertion failure: %#v", obj)
+	if unstructLive != nil {
+		unstructured.SetNestedMap(unstructLive.UnstructuredContent(), dataLive, "data")
+		from = unstructLive
 	}
-	var s corev1.Secret
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &s); err != nil {
-		return nil, fmt.Errorf("convert unstructured to type: %v", err)
+	if unstructMerged != nil {
+		unstructured.SetNestedMap(unstructMerged.UnstructuredContent(), dataMerged, "data")
+		to = unstructMerged
 	}
-	return &s, nil
+	return from, to, nil
 }
 
 // unstructuredNestedMap returns an unstructured.Unstructured object
