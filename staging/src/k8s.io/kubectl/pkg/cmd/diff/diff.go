@@ -459,21 +459,21 @@ func NewMasker(from, to runtime.Object) (*Masker, error) {
 	}, nil
 }
 
-// Mask conceals any secret values and returns the masked from/to versions
-// of the object.
+// Run compares the data field in each from/to versions of an object
+// and masks all sensitive values.
 //
 // All secret values in the objects will be masked with a fixed-length
 // asterisk mask. If two values are different, an additional suffix will
 // be added so they can be diffed.
-func (m *Masker) Mask() (runtime.Object, runtime.Object, error) {
+func (m *Masker) Run() error {
 	// Extract nested map object
 	from, err := dataFromUnstructured(m.From)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	to, err := dataFromUnstructured(m.To)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	for k := range from {
@@ -497,36 +497,40 @@ func (m *Masker) Mask() (runtime.Object, runtime.Object, error) {
 		}
 	}
 
-	var f, t runtime.Object
-	if m.From != nil {
-		if from != nil {
-			unstructured.SetNestedMap(m.From.UnstructuredContent(), from, "data")
+	// Patch objects with masked data
+	if m.From != nil && from != nil {
+		if err := unstructured.SetNestedMap(m.From.UnstructuredContent(), from, "data"); err != nil {
+			return err
 		}
-		f = m.From
 	}
-	if m.To != nil {
-		if to != nil {
-			unstructured.SetNestedMap(m.To.UnstructuredContent(), to, "data")
+	if m.To != nil && to != nil {
+		if err := unstructured.SetNestedMap(m.To.UnstructuredContent(), to, "data"); err != nil {
+			return err
 		}
-		t = m.To
 	}
-	return f, t, nil
+	return nil
 }
 
 func (m *Masker) MaskFrom() (runtime.Object, error) {
-	f, _, err := m.Mask()
-	if err != nil {
+	var obj runtime.Object
+	if err := m.Run(); err != nil {
 		return nil, err
 	}
-	return f, nil
+	if m.From != nil {
+		obj = m.From
+	}
+	return obj, nil
 }
 
 func (m *Masker) MaskTo() (runtime.Object, error) {
-	_, t, err := m.Mask()
-	if err != nil {
+	var obj runtime.Object
+	if err := m.Run(); err != nil {
 		return nil, err
 	}
-	return t, nil
+	if m.To != nil {
+		obj = m.To
+	}
+	return obj, nil
 }
 
 // Differ creates two DiffVersion and diffs them.
