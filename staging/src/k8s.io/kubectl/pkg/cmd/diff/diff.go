@@ -569,7 +569,11 @@ func (d *Differ) Diff(obj Object, printer Printer) error {
 	}
 
 	// Mask secret values if object is V1Secret
-	if gvk := obj.Live().GetObjectKind().GroupVersionKind(); gvk.Version == "v1" && gvk.Kind == "Secret" {
+	o, err := obj.Merged()
+	if err != nil {
+		return err
+	}
+	if gvk := o.GetObjectKind().GroupVersionKind(); gvk.Version == "v1" && gvk.Kind == "Secret" {
 		m, err := NewMasker(from, to)
 		if err != nil {
 			return err
