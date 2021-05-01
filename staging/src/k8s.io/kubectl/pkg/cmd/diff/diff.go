@@ -424,8 +424,12 @@ func toUnstructured(obj runtime.Object) (*unstructured.Unstructured, error) {
 	return u, nil
 }
 
-// Masker masks sensitive values in an object while preserving
-// diff-able changes.
+// Masker masks sensitive values in an object while preserving diff-able
+// changes.
+//
+// All sensitive values in the object will be masked with a fixed-length
+// asterisk mask. If two values are different, an additional suffix will
+// be added so they can be diff-ed.
 type Masker struct {
 	from *unstructured.Unstructured
 	to   *unstructured.Unstructured
@@ -462,13 +466,8 @@ func (m Masker) dataFromUnstructured(u *unstructured.Unstructured) (map[string]i
 	return data, nil
 }
 
-// Run compares the data field in each from/to versions of an object
-// and masks all sensitive values.
-//
-// All sensitive values in the object will be masked with a fixed-length
-// asterisk mask. If two values are different, an additional suffix will
-// be added so they can be diff-ed.
-func (m *Masker) Run() error {
+// run compares and patches sensitive values.
+func (m *Masker) run() error {
 	// Extract nested map object
 	from, err := m.dataFromUnstructured(m.from)
 	if err != nil {
@@ -569,7 +568,7 @@ func (d *Differ) Diff(obj Object, printer Printer) error {
 		if err != nil {
 			return err
 		}
-		if err := m.Run(); err != nil {
+		if err := m.run(); err != nil {
 			return err
 		}
 		from, to = m.From(), m.To()
