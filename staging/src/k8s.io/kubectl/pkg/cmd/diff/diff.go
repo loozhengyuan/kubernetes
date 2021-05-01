@@ -410,31 +410,53 @@ func (obj InfoObject) Name() string {
 	)
 }
 
-// unstructuredNestedMap returns an unstructured.Unstructured object
-// and its nested map.
-func unstructuredNestedMap(obj runtime.Object, fields ...string) (*unstructured.Unstructured, map[string]interface{}, error) {
-	if obj == nil || fields == nil {
-		return nil, nil, nil
+// toUnstructured converts a runtime.Object into an unstructured.Unstructured object.
+func toUnstructured(obj runtime.Object) (*unstructured.Unstructured, error) {
+	if obj == nil {
+		return nil, nil
 	}
 	c, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj.DeepCopyObject())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	u := &unstructured.Unstructured{}
 	u.SetUnstructuredContent(c)
-	data, found, err := unstructured.NestedMap(u.UnstructuredContent(), fields...)
-	if !found {
-		return nil, nil, nil
+	return u, nil
+}
+
+// dataFromUnstructured returns the underlying nested map in the data key.
+func dataFromUnstructured(u *unstructured.Unstructured) (map[string]interface{}, error) {
+	if u == nil {
+		return nil, nil
 	}
+	data, found, err := unstructured.NestedMap(u.UnstructuredContent(), "data")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return u, data, nil
+	if !found {
+		return nil, nil
+	}
+	return data, nil
 }
 
 type Masker struct {
-	From runtime.Object
-	To   runtime.Object
+	From *unstructured.Unstructured
+	To   *unstructured.Unstructured
+}
+
+func NewMasker(from, to runtime.Object) (*Masker, error) {
+	f, err := toUnstructured(from)
+	if err != nil {
+		return nil, fmt.Errorf("convert to unstructured: %w", err)
+	}
+	t, err := toUnstructured(to)
+	if err != nil {
+		return nil, fmt.Errorf("convert to unstructured: %w", err)
+	}
+	return &Masker{
+		From: f,
+		To:   t,
+	}, nil
 }
 
 // Mask conceals any secret values and returns the masked from/to versions
@@ -445,11 +467,11 @@ type Masker struct {
 // be added so they can be diffed.
 func (m *Masker) Mask() (runtime.Object, runtime.Object, error) {
 	// Extract nested map object
-	unstructLive, dataLive, err := unstructuredNestedMap(m.From, "data")
+	dataLive, err := dataFromUnstructured(m.From)
 	if err != nil {
 		return nil, nil, err
 	}
-	unstructMerged, dataMerged, err := unstructuredNestedMap(m.To, "data")
+	dataMerged, err := dataFromUnstructured(m.To)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -475,15 +497,20 @@ func (m *Masker) Mask() (runtime.Object, runtime.Object, error) {
 		}
 	}
 
-	if unstructLive != nil {
-		unstructured.SetNestedMap(unstructLive.UnstructuredContent(), dataLive, "data")
-		m.From = unstructLive
+	var f, t runtime.Object
+	if m.From != nil {
+		if dataLive != nil {
+			unstructured.SetNestedMap(m.From.UnstructuredContent(), dataLive, "data")
+		}
+		f = m.From
 	}
-	if unstructMerged != nil {
-		unstructured.SetNestedMap(unstructMerged.UnstructuredContent(), dataMerged, "data")
-		m.To = unstructMerged
+	if m.To != nil {
+		if dataMerged != nil {
+			unstructured.SetNestedMap(m.To.UnstructuredContent(), dataMerged, "data")
+		}
+		t = m.To
 	}
-	return m.From, m.To, nil
+	return f, t, nil
 }
 
 // Differ creates two DiffVersion and diffs them.
@@ -521,9 +548,9 @@ func (d *Differ) Diff(obj Object, printer Printer) error {
 
 	// Mask secret values if object is V1Secret
 	if gvk := obj.Live().GetObjectKind().GroupVersionKind(); gvk.Version == "v1" && gvk.Kind == "Secret" {
-		m := Masker{
-			From: from,
-			To:   to,
+		m, err := NewMasker(from, to)
+		if err != nil {
+			return err
 		}
 		from, to, err = m.Mask()
 		if err != nil {
