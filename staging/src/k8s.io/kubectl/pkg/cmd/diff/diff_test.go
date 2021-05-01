@@ -495,6 +495,45 @@ func TestMasker(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "invalid_data_key",
+			input: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"some_other_key": map[string]interface{}{ // invalid key
+							"username": "abc",
+							"password": "123",
+						},
+					},
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"some_other_key": map[string]interface{}{ // invalid key
+							"username": "abc",
+							"password": "123",
+						},
+					},
+				},
+			},
+			want: diff{
+				from: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"some_other_key": map[string]interface{}{
+							"username": "abc", // skipped
+							"password": "123", // skipped
+						},
+					},
+				},
+				to: &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"some_other_key": map[string]interface{}{
+							"username": "abc", // skipped
+							"password": "123", // skipped
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc // capture range variable
